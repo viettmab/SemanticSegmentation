@@ -9,8 +9,10 @@ from torch.autograd import Variable
 
 from torchvision import utils
 
-from dataset import *
-from losses import *
+from dataset.cityscapes import CityscapesDataset
+from losses.dice_loss import DiceLoss
+from losses.cross_entropy_loss import CELoss
+
 from model.unet import UNet
  
 

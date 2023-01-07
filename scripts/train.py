@@ -20,13 +20,13 @@ def get_args():
     parser.add_argument('--batch_size', type=int, default=4, help='Batch size')
     parser.add_argument('--num_gpu', type=int, default=1, help='Number of GPUs')
     parser.add_argument('--loss_type', type=str, default="dice", help='Choose between dice & ce')
-    parser.add_argument('--learning_rate', '-l', metavar='LR', type=float, default=0.005,
+    parser.add_argument('--lr', metavar='LR', type=float, default=0.005,
                         help='Learning rate', dest='lr')
     parser.add_argument('--epochs', '-e', metavar='E', type=int, default=50, help='Number of epochs')
     parser.add_argument('--num_classes', type=int, default=19, help='Number of classes')
     parser.add_argument('--num_filters', type=int, default=64, help='Number of filters')
     parser.add_argument('--num_channels', type=int, default=3, help='Number of channels of input')
-    parser.add_argument('--bilinear', action='store_true', default=False, help='Use bilinear upsampling')
+    parser.add_argument('--bilinear', default=False, help='Use bilinear upsampling')
     parser.add_argument('--augment', default=False, help='Augment image input')
     parser.add_argument('--resume_step', type=int, default=0, help='Step to resume')
     parser.add_argument('--model', type=str, default="unet", help='Choose unet or ')
@@ -52,7 +52,7 @@ if __name__ == '__main__':
                     bilinear=args.bilinear)
     model = nn.DataParallel(model)
     model = model.to(device)
-    optimizer = th.optim.Adam(model.parameters(), lr=args.learning_rate)
+    optimizer = th.optim.Adam(model.parameters(), lr=args.lr)
 
     if args.resume_step != 0:
         try:

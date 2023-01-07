@@ -1,6 +1,7 @@
 import argparse
 from tqdm import tqdm
 import os
+import logging
 
 import torch as th
 from torch.utils.data import DataLoader
@@ -11,10 +12,11 @@ from torchvision import utils
 
 from dataset.cityscapes import CityscapesDataset
 from losses.dice_loss import DiceLoss
-from losses.cross_entropy_loss import CELoss
 
 from model.unet import UNet
- 
+
+# Logging
+logger = logging.getLogger(name=__name__)
 
 def get_args():
     parser = argparse.ArgumentParser()
@@ -32,7 +34,8 @@ def get_args():
     parser.add_argument('--augment', default=False, help='Augment image input')
     parser.add_argument('--resume_step', type=int, default=0, help='Step to resume')
     parser.add_argument('--model', type=str, default="unet", help='Choose unet or ')
-    
+    parser.add_argument('--save_interval', type=int, default=5, help='Save checkpoint after n epochs')
+
     return parser.parse_args()
 
     
@@ -60,19 +63,23 @@ if __name__ == '__main__':
         try:
             model.load_state_dict(th.load('./chkpt/model_epoch_{}.pt'.format(args.resume_step)))
             optimizer.load_state_dict(th.load('./chkpt/optim_epoch_{}.pt'.format(args.resume_step)))
+            logger.info("Loaded model_epoch_{}.pt and optim_epoch_{}.pt".format(args.resume_step))
         except Exception as err:
-            print("Can not find the checkpoint")
+            logger.info("Can not find the checkpoint")
             raise
 
     if args.loss_type == "dice":
         loss_func = DiceLoss(ignore_index=255)
+        logger.info("Using Dice Loss")
     elif args.loss_type == "ce":
-        loss_func = CELoss(ignore_index=255)
+        loss_func = nn.CrossEntropyLoss(ignore_index=255)
+        logger.info("Using Cross Entropy Loss")
     
     # 1. Load data
+    logger.info("Loading training data")
     img_data = CityscapesDataset(args.data_dir, split='train', mode='fine', augment=args.augment)
     img_batch = DataLoader(img_data, batch_size=args.batch_size, shuffle=True, num_workers=2)
-
+    
     # 2.Training
     with tqdm(range(args.resume_step,args.resume_step+args.epochs+1)) as pbar:
         for i in pbar:
@@ -118,9 +125,8 @@ if __name__ == '__main__':
                     utils.save_image(img, "./result/image_{}_{}.png".format(i, idx_batch))
                 
             mean_loss = sum(losses) / len(losses)
-            print("Epoch = "+str(i)+" | Loss = "+str(mean_loss))
+            logger.info("Epoch = "+str(i)+" | Loss = "+str(mean_loss))
             file_loss.write(str(mean_loss)+"\n")
-            # finally save checkpoint each 5 epochs
-            if i % 5 == 0:
+            if i % args.save_interval == 0:
                 th.save(model.state_dict(), './chkpt/model_epoch_{}.pt'.format(i))
                 th.save(optimizer.state_dict(), './chkpt/optim_epoch_{}.pt'.format(i))

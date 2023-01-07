@@ -11,7 +11,7 @@ from torchvision import utils
 
 from dataset import *
 from losses import *
-from model import *
+from model.unet import UNet
  
 
 def get_args():

@@ -1,4 +1,6 @@
 from tqdm import tqdm
+import argparse
+import logging
 
 import torch as th
 from torch.utils.data import DataLoader
@@ -7,6 +9,17 @@ from torch.autograd import Variable
 from evaluate_metric.metric import *
 from dataset.cityscapes import CityscapesDataset
 from model.unet import UNet
+
+# Logging
+logger = logging.getLogger(name=__name__)
+logger.setLevel(logging.DEBUG)
+
+stream = logging.StreamHandler()
+stream.setLevel(logging.INFO)
+streamformat = logging.Formatter("%(asctime)s: %(levelname)s: %(message)s")
+stream.setFormatter(streamformat)
+logger.addHandler(stream)
+
 
 def get_args():
     parser = argparse.ArgumentParser()

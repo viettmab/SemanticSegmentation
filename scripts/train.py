@@ -78,7 +78,7 @@ if __name__ == '__main__':
         try:
             model.load_state_dict(th.load(args.chkptfolder+'model_epoch_{}.pt'.format(args.resume_step)))
             optimizer.load_state_dict(th.load(args.chkptfolder+'optim_epoch_{}.pt'.format(args.resume_step)))
-            logger.info("Loaded model_epoch_{}.pt and optim_epoch_{}.pt".format(args.resume_step))
+            logger.info("Loaded model_epoch_{}.pt and optim_epoch_{}.pt".format(args.resume_step,args.resume_step))
         except Exception as err:
             logger.info("Can not find the checkpoint")
             raise
@@ -97,7 +97,7 @@ if __name__ == '__main__':
     
     # 2.Training
     mean_losses = []
-    for i in range(args.resume_step,args.resume_step+args.epochs+1):
+    for i in range(args.resume_step+1,args.resume_step+args.epochs+1):
         losses = []
         with tqdm(enumerate(img_batch)) as pbar:
             for idx_batch, (image_rgb, label_mask, label_rgb) in pbar:

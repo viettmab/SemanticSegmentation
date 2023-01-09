@@ -37,7 +37,7 @@ To train your model, you should first decide some hyperparameters. We will split
 
 ```
 MODEL_FLAGS="--model 'unet' --num_classes 19 --num_filters 64 --num_channels 3 --bilinear True"
-TRAIN_FLAGS="--epochs 50 --loss_type 'dice' --lr 0.005 --batch_size 4 --resume_step 0 --chkptfolder './chpkt/' --save_interval 5"
+TRAIN_FLAGS="--epochs 50 --loss_type 'dice' --lr 0.005 --batch_size 4 --resume_step 0 --chkptfolder './chkpt/' --save_interval 5"
 DATA_FLAGS="--data_dir 'path/to/dataset' --augment False"
 ```
 

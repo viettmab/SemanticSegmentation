@@ -144,8 +144,8 @@ if __name__ == '__main__':
         file_loss.write(str(mean_loss)+"\n")
         mean_losses.append(mean_loss.item())
         if i % args.save_interval == 0:
-            th.save(model.state_dict(), './chkpt/model_epoch_{}.pt'.format(i))
-            th.save(optimizer.state_dict(), './chkpt/optim_epoch_{}.pt'.format(i))
+            th.save(model.state_dict(), args.chkptfolder+'/model_epoch_{}.pt'.format(i))
+            th.save(optimizer.state_dict(), args.chkptfolder+'/optim_epoch_{}.pt'.format(i))
     plt.plot(mean_losses, color='magenta', marker='o',mfc='pink')
     plt.xlabel('Epoch')
     plt.ylabel('Loss')

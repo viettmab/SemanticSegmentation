@@ -1,4 +1,3 @@
-from collections import OrderedDict
 from tqdm import tqdm
 
 import torch as th
@@ -6,6 +5,8 @@ from torch.utils.data import DataLoader
 import torch.nn as nn
 from torch.autograd import Variable
 from evaluate_metric.metric import *
+from dataset.cityscapes import CityscapesDataset
+from model.unet import UNet
 
 def get_args():
     parser = argparse.ArgumentParser()
@@ -18,7 +19,7 @@ def get_args():
     parser.add_argument('--bilinear', default=False, help='Use bilinear upsampling')
     # parser.add_argument('--augment', default=False, help='Augment image input')
     parser.add_argument('--model', type=str, default="unet", help='Choose unet or ...')
-    parser.add_argument('--chkpt_file', type=str, default='./chkpt/model_epoch_50.pt', help='File checkpoint')
+    parser.add_argument('--model_path', type=str, default='./chkpt/model_epoch_50.pt', help='Path to model')
     return parser.parse_args()
 
 if __name__ == '__main__':
@@ -31,8 +32,8 @@ if __name__ == '__main__':
                     bilinear=args.bilinear)
     model = nn.DataParallel(model)
     model = model.to(device)
-    model.load_state_dict(th.load(args.chkpt_file))
-    logger.info("Loaded {}".format(args.chkpt_file))
+    model.load_state_dict(th.load(args.model_path))
+    logger.info("Loaded {}".format(args.model_path))
 
     logger.info("Loading validation data")
     val_data = CityscapesDataset(args.data_dir, split='val', mode='fine', augment=False)

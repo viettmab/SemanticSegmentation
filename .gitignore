@@ -1,0 +1,5 @@
+*.log
+*.pt
+dataset/gtFine
+dataset/leftImg8bit
+dataset/dataset.zip

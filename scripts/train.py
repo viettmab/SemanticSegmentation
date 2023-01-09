@@ -63,7 +63,7 @@ if __name__ == '__main__':
     if not os.path.exists(args.chkptfolder):
         os.makedirs(args.chkptfolder)
 
-    file_loss = open(args.chkptfolder+'loss_batch.txt', 'w')
+    file_loss = open(args.chkptfolder+'loss.txt', 'w')
       
     if args.model == "unet":
         model = UNet(n_channels=args.num_channels, 
@@ -76,8 +76,8 @@ if __name__ == '__main__':
 
     if args.resume_step != 0:
         try:
-            model.load_state_dict(th.load(args.chkptfolder+'model_epoch_{}.pt'.format(args.resume_step)))
-            optimizer.load_state_dict(th.load(args.chkptfolder+'optim_epoch_{}.pt'.format(args.resume_step)))
+            model.load_state_dict(th.load(args.chkptfolder+'model_epoch_{}.pt'.format(args.resume_step)), map_location=device)
+            optimizer.load_state_dict(th.load(args.chkptfolder+'optim_epoch_{}.pt'.format(args.resume_step)), map_location=device)
             logger.info("Loaded model_epoch_{}.pt and optim_epoch_{}.pt".format(args.resume_step,args.resume_step))
         except Exception as err:
             logger.info("Can not find the checkpoint")
@@ -141,7 +141,7 @@ if __name__ == '__main__':
             
         mean_loss = sum(losses) / len(losses)
         logger.info("Epoch = "+str(i)+" | Loss = "+str(mean_loss.item()))
-        file_loss.write(str(mean_loss)+"\n")
+        file_loss.write(str(mean_loss.item())+"\n")
         mean_losses.append(mean_loss.item())
         if i % args.save_interval == 0:
             th.save(model.state_dict(), args.chkptfolder+'/model_epoch_{}.pt'.format(i))
@@ -149,5 +149,7 @@ if __name__ == '__main__':
     plt.plot(mean_losses, color='magenta', marker='o',mfc='pink')
     plt.xlabel('Epoch')
     plt.ylabel('Loss')
+    plt.xticks(range(len(mean_losses)),range(args.resume_step+1,args.resume_step+args.epochs+1))
     plt.title(args.loss_type + " loss training")
     plt.show()
+    plt.savefig(args.chkptfolder+f'loss_{args.resume_step+1}_{args.resume_step+args.epochs+1}.png')

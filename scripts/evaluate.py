@@ -58,9 +58,9 @@ if __name__ == '__main__':
         for idx_batch, (image_rgb, label_mask, label_rgb) in pbar:
             # send to the GPU and do a forward pass
             x = Variable(image_rgb).to(device)
-            y_truth = Variable(label_mask).to(device)
+            y_truth = Variable(label_mask)
             y = model.forward(x)
-            pred_class = th.argmax(y, dim=1).int()
+            pred_class = th.argmax(y, dim=1).cpu().int()
 
             area_intersect, area_union, area_pred_label, area_label = \
                 intersect_and_union(pred_class,y_truth,num_classes=args.num_classes,ignore_index=255)

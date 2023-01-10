@@ -20,7 +20,7 @@ from model.unet import UNet
 logger = logging.getLogger(name=__name__)
 logger.setLevel(logging.DEBUG)
 
-file = logging.FileHandler("info.log")
+file = logging.FileHandler("train.log")
 file.setLevel(logging.INFO)
 fileformat = logging.Formatter("%(asctime)s: %(levelname)s: %(message)s")
 file.setFormatter(fileformat)

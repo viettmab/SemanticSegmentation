@@ -51,8 +51,9 @@ def intersect_and_union(pred_label,
         label[label == 254] = 255
 
     mask = (label != ignore_index)
-    pred_label = pred_label[mask]
-    label = label[mask]
+    # pred_label = pred_label[mask]
+    # label = label[mask]
+    pred_label = th.where(mask,pred_label,th.tensor(255,dtype=th.int))
 
     intersect = pred_label[pred_label == label]
     area_intersect = th.histc(
@@ -111,8 +112,11 @@ def total_area_to_metrics(total_area_intersect,
         elif metric == 'mFscore':
             precision = total_area_intersect / total_area_pred_label
             recall = total_area_intersect / total_area_label
+            precision = th.nan_to_num(precision, nan=0.)
+            recall = th.nan_to_num(recall, nan=0.)
             f_value = th.tensor(
                 [f_score(x[0], x[1], beta) for x in zip(precision, recall)])
+            f_value = th.nan_to_num(f_value, nan=0.)
             ret_metrics['Fscore'] = f_value
             ret_metrics['Precision'] = precision
             ret_metrics['Recall'] = recall

@@ -63,7 +63,7 @@ if __name__ == '__main__':
             pred_class = th.argmax(y, dim=1).int()
 
             area_intersect, area_union, area_pred_label, area_label = \
-                intersect_and_union(pred_class,y_truth,num_classes=19,ignore_index=255)
+                intersect_and_union(pred_class,y_truth,num_classes=args.num_classes,ignore_index=255)
             total_area_intersect += area_intersect
             total_area_union += area_union
             total_area_pred_label += area_pred_label
@@ -72,3 +72,4 @@ if __name__ == '__main__':
           total_area_pred_label, total_area_label,metrics = ['mIoU', 'mDice', 'mFscore'])
     for metric, value in dic.items():
         print(metric + ": " + str(value.mean().item()))
+        logger.info(metric + ": " + str(value.mean().item()))

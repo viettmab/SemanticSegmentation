@@ -71,5 +71,4 @@ if __name__ == '__main__':
     dic = total_area_to_metrics(total_area_intersect, total_area_union, \
           total_area_pred_label, total_area_label,metrics = ['mIoU', 'mDice', 'mFscore'])
     for metric, value in dic.items():
-        print(metric + ": " + str(value.mean().item()))
         logger.info(metric + ": " + str(value.mean().item()))

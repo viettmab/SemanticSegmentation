@@ -76,8 +76,8 @@ if __name__ == '__main__':
 
     if args.resume_step != 0:
         try:
-            model.load_state_dict(th.load(args.chkptfolder+'model_epoch_{}.pt'.format(args.resume_step)), map_location=device)
-            optimizer.load_state_dict(th.load(args.chkptfolder+'optim_epoch_{}.pt'.format(args.resume_step)), map_location=device)
+            model.load_state_dict(th.load(args.chkptfolder+'model_epoch_{}.pt'.format(args.resume_step), map_location=device))
+            optimizer.load_state_dict(th.load(args.chkptfolder+'optim_epoch_{}.pt'.format(args.resume_step), map_location=device))
             logger.info("Loaded model_epoch_{}.pt and optim_epoch_{}.pt".format(args.resume_step,args.resume_step))
         except Exception as err:
             logger.info("Can not find the checkpoint")

@@ -72,6 +72,8 @@ if __name__ == '__main__':
                     n_filters=args.num_filters, 
                     bilinear=args.bilinear,
                     resnet=args.resnet)
+        if args.resnet == True:
+            logger.info("Using Resnet")
     model = nn.DataParallel(model)
     model = model.to(device)
     optimizer = th.optim.Adam(model.parameters(), lr=args.lr)

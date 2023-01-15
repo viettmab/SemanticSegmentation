@@ -8,7 +8,7 @@ import torchvision.transforms.functional as TF
 class DoubleConv(nn.Module):
     """(convolution => [BN] => ReLU) * 2"""
 
-    def __init__(self, in_channels, out_channels, mid_channels=None):
+    def __init__(self, in_channels, out_channels, mid_channels=None, resnet=False):
         super().__init__()
         if not mid_channels:
             mid_channels = out_channels
@@ -20,19 +20,25 @@ class DoubleConv(nn.Module):
             nn.BatchNorm2d(out_channels),
             nn.ReLU(inplace=True)
         )
+        self.resnet=resnet
+        if self.resnet:
+            self.skip_connection = nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=1, bias=False)
 
     def forward(self, x):
-        return self.double_conv(x)
+        if self.resnet:
+            return self.double_conv(x) + self.skip_connection(x)
+        else:
+            return self.double_conv(x)
 
 
 class Down(nn.Module):
     """Downscaling with maxpool then double conv"""
 
-    def __init__(self, in_channels, out_channels):
+    def __init__(self, in_channels, out_channels,resnet):
         super().__init__()
         self.maxpool_conv = nn.Sequential(
             nn.MaxPool2d(2),
-            DoubleConv(in_channels, out_channels)
+            DoubleConv(in_channels, out_channels,resnet=resnet)
         )
 
     def forward(self, x):
@@ -42,16 +48,16 @@ class Down(nn.Module):
 class Up(nn.Module):
     """Upscaling then double conv"""
 
-    def __init__(self, in_channels, out_channels, bilinear=True):
+    def __init__(self, in_channels, out_channels, bilinear=True, resnet=False):
         super().__init__()
 
         # if bilinear, use the normal convolutions to reduce the number of channels
         if bilinear:
             self.up = nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True)
-            self.conv = DoubleConv(in_channels, out_channels, in_channels // 2)
+            self.conv = DoubleConv(in_channels, out_channels, in_channels // 2, resnet=resnet)
         else:
             self.up = nn.ConvTranspose2d(in_channels, in_channels // 2, kernel_size=2, stride=2)
-            self.conv = DoubleConv(in_channels, out_channels)
+            self.conv = DoubleConv(in_channels, out_channels, resnet=resnet)
 
     def forward(self, x1, x2):
         x1 = self.up(x1)
@@ -75,24 +81,25 @@ class OutConv(nn.Module):
 
 
 class UNet(nn.Module):
-    def __init__(self, n_channels, n_classes, n_filters=64, bilinear=False):
+    def __init__(self, n_channels, n_classes, n_filters=64, bilinear=False,resnet=False):
         super(UNet, self).__init__()
         self.n_channels = n_channels
         self.n_classes = n_classes
         self.bilinear = bilinear
         self.n_filters = n_filters
+        self.resnet = resnet
         factor = 2 if self.bilinear else 1
 
-        self.input = (DoubleConv(self.n_channels, self.n_filters*1))
-        self.down1 = (Down(self.n_filters*1, self.n_filters*2))
-        self.down2 = (Down(self.n_filters*2, self.n_filters*4))
-        self.down3 = (Down(self.n_filters*4, self.n_filters*8))
-        self.down4 = (Down(self.n_filters*8, (self.n_filters*16) // factor))
+        self.input = (DoubleConv(self.n_channels, self.n_filters*1, resnet=self.resnet))
+        self.down1 = (Down(self.n_filters*1, self.n_filters*2, self.resnet))
+        self.down2 = (Down(self.n_filters*2, self.n_filters*4, self.resnet))
+        self.down3 = (Down(self.n_filters*4, self.n_filters*8, self.resnet))
+        self.down4 = (Down(self.n_filters*8, (self.n_filters*16) // factor, self.resnet))
 
-        self.up1 = (Up(self.n_filters*16, (self.n_filters*8) // factor, self.bilinear))
-        self.up2 = (Up(self.n_filters*8, (self.n_filters*4) // factor, self.bilinear))
-        self.up3 = (Up(self.n_filters*4, (self.n_filters*2) // factor, self.bilinear))
-        self.up4 = (Up(self.n_filters*2, self.n_filters*1, self.bilinear))
+        self.up1 = (Up(self.n_filters*16, (self.n_filters*8) // factor, self.bilinear, self.resnet))
+        self.up2 = (Up(self.n_filters*8, (self.n_filters*4) // factor, self.bilinear, self.resnet))
+        self.up3 = (Up(self.n_filters*4, (self.n_filters*2) // factor, self.bilinear, self.resnet))
+        self.up4 = (Up(self.n_filters*2, self.n_filters*1, self.bilinear, self.resnet))
         self.out = (OutConv(self.n_filters, self.n_classes))
 
     def forward(self, x):

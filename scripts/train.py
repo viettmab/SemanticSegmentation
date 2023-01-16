@@ -72,7 +72,7 @@ if __name__ == '__main__':
                     n_filters=args.num_filters, 
                     bilinear=args.bilinear,
                     resnet=args.resnet)
-        if args.resnet == True:
+        if args.resnet:
             logger.info("Using Resnet")
     model = nn.DataParallel(model)
     model = model.to(device)

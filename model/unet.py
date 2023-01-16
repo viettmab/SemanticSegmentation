@@ -48,16 +48,16 @@ class Down(nn.Module):
 class Up(nn.Module):
     """Upscaling then double conv"""
 
-    def __init__(self, in_channels, out_channels, bilinear=True, resnet=False):
+    def __init__(self, in_channels, out_channels, bilinear=True):
         super().__init__()
 
         # if bilinear, use the normal convolutions to reduce the number of channels
         if bilinear:
             self.up = nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True)
-            self.conv = DoubleConv(in_channels, out_channels, in_channels // 2, resnet=resnet)
+            self.conv = DoubleConv(in_channels, out_channels, in_channels // 2, resnet=False)
         else:
             self.up = nn.ConvTranspose2d(in_channels, in_channels // 2, kernel_size=2, stride=2)
-            self.conv = DoubleConv(in_channels, out_channels, resnet=resnet)
+            self.conv = DoubleConv(in_channels, out_channels, resnet=False)
 
     def forward(self, x1, x2):
         x1 = self.up(x1)
@@ -96,10 +96,10 @@ class UNet(nn.Module):
         self.down3 = (Down(self.n_filters*4, self.n_filters*8, self.resnet))
         self.down4 = (Down(self.n_filters*8, (self.n_filters*16) // factor, self.resnet))
 
-        self.up1 = (Up(self.n_filters*16, (self.n_filters*8) // factor, self.bilinear, self.resnet))
-        self.up2 = (Up(self.n_filters*8, (self.n_filters*4) // factor, self.bilinear, self.resnet))
-        self.up3 = (Up(self.n_filters*4, (self.n_filters*2) // factor, self.bilinear, self.resnet))
-        self.up4 = (Up(self.n_filters*2, self.n_filters*1, self.bilinear, self.resnet))
+        self.up1 = (Up(self.n_filters*16, (self.n_filters*8) // factor, self.bilinear))
+        self.up2 = (Up(self.n_filters*8, (self.n_filters*4) // factor, self.bilinear))
+        self.up3 = (Up(self.n_filters*4, (self.n_filters*2) // factor, self.bilinear))
+        self.up4 = (Up(self.n_filters*2, self.n_filters*1, self.bilinear))
         self.out = (OutConv(self.n_filters, self.n_classes))
 
     def forward(self, x):

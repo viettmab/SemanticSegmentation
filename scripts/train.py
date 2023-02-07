@@ -7,7 +7,7 @@ import torch as th
 from torch.utils.data import DataLoader
 import torch.nn as nn
 from torch.autograd import Variable
-
+from evaluate_metric.metric import *
 from torchvision import utils
 import matplotlib.pyplot as plt
 
@@ -32,9 +32,11 @@ streamformat = logging.Formatter("%(asctime)s: %(levelname)s: %(message)s")
 stream.setFormatter(streamformat)
 logger.addHandler(stream)
 
+
 def get_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--data_dir', type=str, default='/kaggle/input/dataset/dataset', help='Directory of Cityscapes dataset')
+    parser.add_argument('--data_dir', type=str, default='/kaggle/input/dataset/dataset',
+                        help='Directory of Cityscapes dataset')
     parser.add_argument('--batch_size', type=int, default=4, help='Batch size')
     parser.add_argument('--num_gpu', type=int, default=1, help='Number of GPUs')
     parser.add_argument('--loss_type', type=str, default="dice", help='Choose between dice & ce')
@@ -46,6 +48,7 @@ def get_args():
     parser.add_argument('--num_channels', type=int, default=3, help='Number of channels of input')
     parser.add_argument('--bilinear', default=False, help='Use bilinear upsampling')
     parser.add_argument('--resnet', default=False, help='Use resnet')
+    parser.add_argument('--attention', default=False, help='Use attention')
     parser.add_argument('--augment', default=False, help='Augment image input')
     parser.add_argument('--resume_step', type=int, default=0, help='Step to resume')
     parser.add_argument('--model', type=str, default="unet", help='Choose unet or ...')
@@ -54,25 +57,29 @@ def get_args():
 
     return parser.parse_args()
 
-    
+
 if __name__ == '__main__':
     device = th.device("cuda" if th.cuda.is_available() else "cpu")
     args = get_args()
     if not os.path.exists('./result/'):
         os.makedirs('./result/')
-                    
+
     if not os.path.exists(args.chkptfolder):
         os.makedirs(args.chkptfolder)
 
-    file_loss = open(args.chkptfolder+'loss.txt', 'w')
-      
+    file_loss = open(args.chkptfolder + 'loss.txt', 'w')
+
     if args.model == "unet":
-        model = UNet(n_channels=args.num_channels, 
-                    n_classes=args.num_classes, 
-                    n_filters=args.num_filters, 
-                    bilinear=args.bilinear,
-                    resnet=args.resnet)
-        if args.resnet == True:
+        model = UNet(n_channels=args.num_channels,
+                     n_classes=args.num_classes,
+                     n_filters=args.num_filters,
+                     bilinear=args.bilinear,
+                     resnet=args.resnet,
+                     attention=args.attention)
+        #         logger.info(f"Using Attention: {args.attention}")
+        if args.attention == "True":
+            logger.info("Using Attention")
+        if args.resnet == "True":
             logger.info("Using Resnet")
     model = nn.DataParallel(model)
     model = model.to(device)
@@ -80,9 +87,11 @@ if __name__ == '__main__':
 
     if args.resume_step != 0:
         try:
-            model.load_state_dict(th.load(args.chkptfolder+'model_epoch_{}.pt'.format(args.resume_step), map_location=device))
-            optimizer.load_state_dict(th.load(args.chkptfolder+'optim_epoch_{}.pt'.format(args.resume_step), map_location=device))
-            logger.info("Loaded model_epoch_{}.pt and optim_epoch_{}.pt".format(args.resume_step,args.resume_step))
+            model.load_state_dict(
+                th.load(args.chkptfolder + 'model_epoch_{}.pt'.format(args.resume_step), map_location=device))
+            optimizer.load_state_dict(
+                th.load(args.chkptfolder + 'optim_epoch_{}.pt'.format(args.resume_step), map_location=device))
+            logger.info("Loaded model_epoch_{}.pt and optim_epoch_{}.pt".format(args.resume_step, args.resume_step))
         except Exception as err:
             logger.info("Can not find the checkpoint")
             raise
@@ -93,16 +102,18 @@ if __name__ == '__main__':
     elif args.loss_type == "ce":
         loss_func = nn.CrossEntropyLoss(ignore_index=255)
         logger.info("Using Cross Entropy Loss")
-    
+
     # 1. Load data
     logger.info("Loading training data")
     img_data = CityscapesDataset(args.data_dir, split='train', mode='fine', augment=args.augment)
     img_batch = DataLoader(img_data, batch_size=args.batch_size, shuffle=True, num_workers=2)
-    
+
     # 2.Training
     mean_losses = []
-    for i in range(args.resume_step+1,args.resume_step+args.epochs+1):
+    for i in range(args.resume_step + 1, args.resume_step + args.epochs + 1):
         losses = []
+        total_area_intersect, total_area_union, total_area_pred_label, total_area_label = 0, 0, 0, 0
+
         with tqdm(enumerate(img_batch)) as pbar:
             for idx_batch, (image_rgb, label_mask, label_rgb) in pbar:
                 # zero the grad of the network before feed-forward
@@ -137,23 +148,36 @@ if __name__ == '__main__':
                     # save the original image, label and prediction batches to file
                     img = []
                     img.append(x.cpu().data)
-                    img.append(label_rgb/255)
-                    img.append(y_threshed/255)
+                    img.append(label_rgb / 255)
+                    img.append(y_threshed / 255)
                     img = th.cat(img, dim=0)
-                    img = utils.make_grid(img, nrow = 4)
+                    img = utils.make_grid(img, nrow=4)
                     utils.save_image(img, "./result/image_{}_{}.png".format(i, idx_batch))
-            
+                pred_class = th.argmax(y, dim=1).cpu().int()
+
+                area_intersect, area_union, area_pred_label, area_label = \
+                    intersect_and_union(pred_class, y_truth.cpu(), num_classes=args.num_classes, ignore_index=255)
+                total_area_intersect += area_intersect
+                total_area_union += area_union
+                total_area_pred_label += area_pred_label
+                total_area_label += area_label
+        dic = total_area_to_metrics(total_area_intersect, total_area_union, \
+                                    total_area_pred_label, total_area_label, metrics=['mIoU', 'mDice', 'mFscore'])
+
         mean_loss = sum(losses) / len(losses)
-        logger.info("Epoch = "+str(i)+" | Loss = "+str(mean_loss.item()))
-        file_loss.write(str(mean_loss.item())+"\n")
+        logger.info("Epoch = " + str(i) + " | Loss = " + str(mean_loss.item()))
+        for metric, value in dic.items():
+            logger.info(metric + ": " + str(value.mean().item()))
+        file_loss.write(str(mean_loss.item()) + "\n")
         mean_losses.append(mean_loss.item())
         if i % args.save_interval == 0:
-            th.save(model.state_dict(), args.chkptfolder+'/model_epoch_{}.pt'.format(i))
-            th.save(optimizer.state_dict(), args.chkptfolder+'/optim_epoch_{}.pt'.format(i))
-    plt.plot(mean_losses, color='magenta', marker='o',mfc='pink')
+            th.save(model.state_dict(), args.chkptfolder + '/model_epoch_{}.pt'.format(i))
+            th.save(optimizer.state_dict(), args.chkptfolder + '/optim_epoch_{}.pt'.format(i))
+
+    plt.plot(mean_losses, color='magenta', marker='o', mfc='pink')
     plt.xlabel('Epoch')
     plt.ylabel('Loss')
-    plt.xticks(range(len(mean_losses)),range(args.resume_step+1,args.resume_step+args.epochs+1))
+    plt.xticks(range(len(mean_losses)), range(args.resume_step + 1, args.resume_step + args.epochs + 1))
     plt.title(args.loss_type + " loss training")
     plt.show()
-    plt.savefig(args.chkptfolder+f'loss_{args.resume_step+1}_{args.resume_step+args.epochs+1}.png')
+    plt.savefig(args.chkptfolder + f'loss_{args.resume_step + 1}_{args.resume_step + args.epochs + 1}.png')

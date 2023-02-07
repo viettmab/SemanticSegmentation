@@ -33,6 +33,7 @@ def get_args():
     parser.add_argument('--num_channels', type=int, default=3, help='Number of channels of input')
     parser.add_argument('--bilinear', default=False, help='Use bilinear upsampling')
     parser.add_argument('--resnet', default=False, help='Use resnet')
+    parser.add_argument('--attention', default=False, help='Use attention')
     # parser.add_argument('--augment', default=False, help='Augment image input')
     parser.add_argument('--model', type=str, default="unet", help='Choose unet or ...')
     parser.add_argument('--result_folder', type=str, default='./predict/', help='Save results to folder')
@@ -44,11 +45,12 @@ if __name__ == '__main__':
     device = th.device("cuda" if th.cuda.is_available() else "cpu")
     args = get_args()
     if args.model == "unet":
-        model = UNet(n_channels=args.num_channels, 
-                    n_classes=args.num_classes, 
-                    n_filters=args.num_filters, 
-                    bilinear=args.bilinear,
-                    resnet=args.resnet)
+        model = UNet(n_channels=args.num_channels,
+                     n_classes=args.num_classes,
+                     n_filters=args.num_filters,
+                     bilinear=args.bilinear,
+                     resnet=args.resnet,
+                     attention=args.attention)
     model = nn.DataParallel(model)
     model = model.to(device)
     model.load_state_dict(th.load(args.model_path))

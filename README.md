@@ -36,7 +36,7 @@ Save it in the folder [dataset](dataset) in the structure:
 To train your model, you should first decide some hyperparameters. We will split up our hyperparameters into three groups: model architecture, training flags and data setting. Here are some reasonable defaults:
 
 ```
-MODEL_FLAGS="--model 'unet' --num_classes 19 --num_filters 64 --num_channels 3 --bilinear True --resnet False"
+MODEL_FLAGS="--model 'unet' --num_classes 19 --num_filters 64 --num_channels 3 --bilinear True --resnet True --attention True"
 TRAIN_FLAGS="--epochs 50 --loss_type 'dice' --lr 0.005 --batch_size 4 --resume_step 0 --chkptfolder './chkpt/' --save_interval 5"
 DATA_FLAGS="--data_dir 'path/to/dataset' --augment False"
 ```
@@ -53,7 +53,7 @@ The above training script saves checkpoints to `.pt` files in the `--chkptfolder
 
 Once you have a path to your model, you can evaluate IoU, Dice score,... of the `val` data
 ```
-MODEL_FLAGS="--model 'unet' --num_classes 19 --num_filters 64 --num_channels 3 --bilinear True --resnet False --model_path './chkpt/model_epoch_50.pt'"
+MODEL_FLAGS="--model 'unet' --num_classes 19 --num_filters 64 --num_channels 3 --bilinear True --resnet True --attention True --model_path './chkpt/model_epoch_50.pt'"
 DATA_FLAGS="--data_dir 'path/to/dataset' --batch_size 4"
 ```
 
@@ -65,7 +65,7 @@ python scripts/evaluate.py $MODEL_FLAGS $DATA_FLAGS
 
 You can segment the `val` data and save the result to `--result_folder`
 ```
-MODEL_FLAGS="--model 'unet' --num_classes 19 --num_filters 64 --num_channels 3 --bilinear True --resnet False --model_path './chkpt/model_epoch_50.pt'"
+MODEL_FLAGS="--model 'unet' --num_classes 19 --num_filters 64 --num_channels 3 --bilinear True --resnet True --attention True --model_path './chkpt/model_epoch_50.pt'"
 DATA_FLAGS="--data_dir 'path/to/dataset' --batch_size 4"
 ```
 
